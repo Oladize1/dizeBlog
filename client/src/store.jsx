@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import axios from 'axios'
-const BASE_URL = 'https://dizeblog.onrender.com/api/blog'
+// const BASE_URL = 'https://dizeblog.onrender.com/api/blog'
+const BASE_URL = 'http://localhost:3000/api/blog'
 export const useAuthStore = create((set) => ({
     user: localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null,
     error:null,

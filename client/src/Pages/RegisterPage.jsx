@@ -28,31 +28,38 @@ const RegisterPage = () => {
     }
   }, [navigate, user])
 
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   if (isLoading) {
     return <Spinner/>
   }
 
   const canSave = Boolean(name) && Boolean(username) && Boolean(password) && Boolean(confirmPassword)
 
-  const handleRegister = async(e) => {
-    e.preventDefault()
-    let role = ''
-    if(password !== confirmPassword){
-      toast.error("password doesn't match ")
-      return 
-    }
-    try {
-      if (author === true) {
-        role = 'author'
-        await register(name, username, password, role)
-        return navigate('/login')
-      }
-      await register(name, username, password)
-      navigate('/login')
-    } catch (error) {
-      toast(error?.response?.data)
-    }
-  }
+  // const handleRegister = async(e) => {
+  //   e.preventDefault()
+  //   let role = ''
+  //   if(password !== confirmPassword){
+  //     toast.error("password doesn't match ")
+  //     return 
+  //   }
+  //   try {
+  //     if (author === true) {
+  //       role = 'author'
+  //       await register(name, username, password, role)
+  //       return navigate('/login')
+  //     }
+  //     await register(name, username, password)
+  //     navigate('/login')
+  //   } catch (error) {
+  //     toast(error?.response?.data)
+  //   }
+  // }
+
   // const handleRegister = async (e) => {
   //   e.preventDefault()
   //   let role = ''
@@ -67,6 +74,28 @@ const RegisterPage = () => {
   //     navigate('/')
   //   }
   // }
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+
+    const role = author ? "author" : "";
+
+    try {
+      await register(name, username, password, role);
+
+      // Only navigate if no error was set in the store
+      if (!error) {
+        navigate("/login");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Registration failed");
+    }
+  };
   return (
     <div>
       <form className='rounded-md ring-1 p-4 mx-auto w-96 m-5' onSubmit={handleRegister}>

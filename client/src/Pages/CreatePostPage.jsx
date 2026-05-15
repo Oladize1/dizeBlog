@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePostStore } from '../store';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -14,6 +14,12 @@ const CreatePostPage = () => {
 
   if (isLoading) return <Spinner />;
   if (error) return toast(error);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
 
   // Only enable save if all fields are non-empty
   const canSave = Boolean(title) && Boolean(description) && Boolean(content);
@@ -31,12 +37,14 @@ const CreatePostPage = () => {
 
     try {
       // Create the post with the plain text content.
-      const newPost = await createPost(title, description, plainContent);
-      setTitle('');
-      setDescription('');
-      setContent('');
-      toast.success('Post created successfully');
-      navigate('/');
+      await createPost(title, description, plainContent);
+      if (!error) {
+        setTitle("");
+        setDescription("");
+        setContent("");
+        toast.success("Post created successfully");
+        navigate("/");
+      }
     } catch (error) {
       console.log(error);
       toast.error(error.response?.data);

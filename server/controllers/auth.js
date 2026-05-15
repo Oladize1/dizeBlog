@@ -1,75 +1,115 @@
 import { User } from "../model/User.js";
-import jwt from 'jsonwebtoken'
-import bcrypt from 'bcryptjs'
+import { RefreshToken } from "../model/RefreshToken.js";
+import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
+import bcrypt from "bcryptjs";
+import { userService } from "../services/user.service.js";
+import { userRepository } from "../repositories/user.repository.js";
 
-export const login = async (req, res) => {
-    try {
-        let {username, password} = req.body
-        username = username.trim()
-        
-        console.log(username, password);
-        
-        if (!username || !password) { 
-            return res.status(400).json({message:'All input is required'})
-        }
-        const userExist = await User.findOne({username})
-        
-        if (!userExist) {
-            return res.status(400).json({message: 'user does not exist'})
-        }
-        const validPassword = await bcrypt.compare(password, userExist.password)
-        if (!validPassword) {
-            return res.status(400).json({message: 'Invalid password'})
-        }
+export const login = async (req, res, next) => {
+  try {
+    const { username, password } = req.body;
 
-        const userForToken = {
-            username: userExist.username,
-            id: userExist._id
-        }
-
-        const token = jwt.sign(userForToken, process.env.SECRET, {expiresIn: '1h'})
-        res.status(200).json({token, username: userExist.username, role: userExist.role, name: userExist.name, id:userExist._id, bookmarks: userExist.bookmarks})
-    } catch (error) {
-        res.status(500).json({ message: 'Unable to login', error: error.message });
+    if (!username || !password) {
+      return res.status(400).json({ message: "All input is required" });
     }
-}
-
-export const register = async (req, res) => {
-    try {
-        let {name, username, password, role } = req.body
-        name = name.trim()
-        username = username.trim()
-        if (!name || !username || !password) {
-            return res.status(400).json({message: 'All input is required'})
-        }
-        if(username.length < 3 || password.length < 6) {
-            return res.status(400).json({message: 'Username must be at least 6 characters'})
-        }
-        const existingUser = await User.findOne({username});
-        if (existingUser) {
-            return res.status(400).json({message: 'User already exists'});
-        }
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(password, salt)
-        const newUser = new User({
-            name,
-            username,
-            password: hashedPassword,
-            role: role || 'user' 
-        })
-        const user = await newUser.save()
-        res.status(201).json(user)
-        console.log({name, username, password: hashedPassword})
-    } catch (error) {
-        res.status(500).json('unable to register', error)
+    const loginService = await userService.login(username, password, req, next);
+    if (!loginService) {
+      const error = new Error("Failed to login");
+      error.statusCode = 400;
+      return next(error);
     }
-}
+    res.cookie("refreshToken", loginService.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return res.status(200).json({
+      accessToken: loginService.accessToken,
+      username: loginService.userExist.username,
+      role: loginService.userExist.role,
+      name: loginService.userExist.name,
+      id: loginService.userExist._id,
+      bookmarks: loginService.userExist.bookmarks,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const register = async (req, res, next) => {
+  try {
+    let { name, username, password, role } = req.body;
+    if (!name || !username || !password) {
+      return res.status(400).json({ message: "All input is required" });
+    }
+    if (username.length < 3 || password.length < 6) {
+      return res
+        .status(400)
+        .json({ message: "Username must be at least 6 characters" });
+    }
+    const user = await userService.register(
+      name,
+      username,
+      password,
+      role,
+      next,
+    );
+    if (!user) {
+      const error = new Error("Failed to register");
+      error.statusCode = 400;
+      return next(error);
+    }
+    return res.status(201).json(user);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const refresh = async (req, res, next) => {
+  try {
+    const { userId, refreshToken } = req.user;
+
+    const user = await userRepository.refresh(userId, refreshToken, next);
+
+    res.cookie("refreshToken", user.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return res.status(200).json({ message: user.accessToken });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies;
+
+    if (refreshToken) {
+      await RefreshToken.deleteOne({ token: refreshToken });
+    }
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+    });
+
+    return res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    return res.status(500).json({ message: "Logout failed" });
+  }
+};
 
 // export const getUser = async (req, res) => {
 //     try {
 //         const { id } =  req.params
 //         console.log(id);
-        
+
 //         const fetchUser = await User.findById(id)
 //         if(!fetchUser){
 //             return res.status(404).json({message: 'user not found'})
@@ -81,4 +121,3 @@ export const register = async (req, res) => {
 //         res.status(500).json({error})
 //     }
 // }
-

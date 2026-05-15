@@ -83,7 +83,7 @@ const Posts = () => {
             next={fetchMorePosts}
             hasMore={hasMore}
             loader={<Spinner/>}
-            endMessage={<p className="font-semibold text-gray-300 text-center">No more Posts</p>}
+            endMessage={<p className="font-semibold text-center">No more Posts</p>}
           >
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
