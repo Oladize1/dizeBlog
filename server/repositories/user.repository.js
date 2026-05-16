@@ -17,5 +17,11 @@ export const userRepository = {
     },
     findUserById: async (userId) => {
         return await User.findById(userId)
+    },
+    removeAllToken: async (userId) => {
+        return await RefreshToken.deleteMany({user: userId})
+    },
+    replaceIp: async (id, ip) => {
+        return await RefreshToken.findByIdAndUpdate(id, {ip})
     }
 }

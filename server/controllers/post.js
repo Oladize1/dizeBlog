@@ -35,10 +35,10 @@ export const getSinglePost = async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { id } = req.params;
-    const post = await postService.getSinglePost(id, userId, next);
+    const post = await postService.getSinglePost(id, userId);
     return res.status(200).json(post);
   } catch (error) {
-    return res.next(error);
+    return next(error);
   }
 };
 
@@ -59,7 +59,6 @@ export const createPost = async (req, res, next) => {
       body.content,
       userId,
       userRole,
-      next,
     );
 
     return res.status(201).json(post);
@@ -86,12 +85,10 @@ export const updatePost = async (req, res, next) => {
       title,
       description,
       content,
-      next,
     );
     return res.status(200).json(updatedPost);
   } catch (error) {
-    console.log(error);
-    return res.status(500).json(error);
+    return next(error);
   }
 };
 
@@ -106,10 +103,10 @@ export const deletePost = async (req, res, next) => {
       return next(error);
     }
 
-    const deletePost = await postService.deletePost(id, userId, next);
+    const deletePost = await postService.deletePost(id, userId);
     return res.status(200).json(deletePost);
   } catch (error) {
-    return res.status(500).json(error);
+    return next(error);
   }
 };
 
@@ -129,7 +126,6 @@ export const commentOnPost = async (req, res, next) => {
       userId,
       userName,
       id,
-      next,
     );
 
     return res.status(201).json(newComment);
@@ -143,7 +139,7 @@ export const getCommentsForPost = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const post = await postService.getPostComments(id, res, next);
+    const post = await postService.getPostComments(id, res);
     return res.status(200).json(post);
   } catch (error) {
     return next(error);
@@ -155,7 +151,7 @@ export const addBookmark = async (req, res, next) => {
     const { userId } = req.user;
     const { id } = req.params;
 
-    const bookmark = await postService.bookmark(id, userId, res, next);
+    const bookmark = await postService.bookmark(id, userId, res);
 
     return res.status(200).json(bookmark);
   } catch (error) {
@@ -171,7 +167,6 @@ export const removeBookmark = async (req, res, next) => {
     const removedBookmark = await postService.removeBookmarked(
       userId,
       id,
-      next,
     );
     return res
       .status(200)
@@ -185,7 +180,7 @@ export const removeBookmark = async (req, res, next) => {
 export const getBookmarks = async (req, res, next) => {
   try {
     const { userId } = req.user;
-    const bookmarks = await postService.getBookmarks(userId, res, next);
+    const bookmarks = await postService.getBookmarks(userId, res);
     return res.status(200).json(bookmarks);
   } catch (error) {
     return next(error);
@@ -197,7 +192,7 @@ export const likePost = async (req, res, next) => {
     const { userId } = req.user;
     const { id } = req.params;
     
-    const post = await postService.likePost(userId, id, next)
+    const post = await postService.likePost(userId, id)
     return res.status(200).json(post);
   } catch (error) {
     return next(error)

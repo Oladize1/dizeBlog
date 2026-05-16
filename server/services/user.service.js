@@ -3,18 +3,18 @@ import bcrypt from "bcryptjs";
 import { generateAccessToken, generateRefreshToken } from "../utils/token.js";
 
 export const userService = {
-  login: async (username, password, req, next) => {
+  login: async (username, password, userIp, userAgent) => {
     const userExist = await userRepository.findUser(username);
     if (!userExist) {
       const error = new Error("User does not exist");
       error.statusCode = 400;
-      return next(error);
+      throw error;
     }
     const validPassword = await bcrypt.compare(password, userExist.password);
     if (!validPassword) {
       const error = new Error("Invalid Credentials");
       error.statusCode = 400;
-      return next(error);
+      throw error;
     }
     const accessToken = generateAccessToken(userExist);
     const refreshToken = generateRefreshToken(userExist);
@@ -22,9 +22,9 @@ export const userService = {
       refreshToken,
       userExist._id,
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      req.ip,
+      userIp,
       Date.now(),
-      req.headers["user-agent"],
+      userAgent,
     );
     return { accessToken, refreshToken, userExist };
   },
@@ -50,13 +50,25 @@ export const userService = {
     return user;
   },
 
-  
-  refresh: async (userId, token, next) => {
+  refresh: async (userId, token, ip, userAgent, next) => {
     const storedToken = await userRepository.refreshToken(token);
     if (!storedToken) {
       const error = new Error("Token reuse detected");
       error.statusCode = 403;
       return next(error);
+    }
+
+    if (storedToken.userAgent !== userAgent) {
+      await userRepository.removeAllToken(userId);
+      const error = new Error("Security violation: Device mismatch");
+      error.statusCode = 403;
+      return next(error);
+    }
+
+    let newIp;
+
+    if (storedToken.ip !== ip) {
+      newIp = await userRepository.replaceIp(storedToken._id, ip);
     }
     const user = await userRepository.findUserById(userId);
 
@@ -66,11 +78,13 @@ export const userService = {
 
     const newRefreshToken = generateRefreshToken(user);
 
-    // Potential bug Fix later
     const refreshToken = userRepository.createRefreshToken(
       newRefreshToken,
       userId,
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      newIp ? newIp : storedToken.ip,
+      Date.now(),
+      userAgent,
     );
     const accessToken = generateAccessToken(user);
     return { accessToken, refreshToken };

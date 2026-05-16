@@ -8,16 +8,23 @@ import { userRepository } from "../repositories/user.repository.js";
 export const login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
-
+    const userIp = req.ip || req.headers["x-forwarded-for"];
+    const userAgent = req.headers["user-agent"];
     if (!username || !password) {
       return res.status(400).json({ message: "All input is required" });
     }
-    const loginService = await userService.login(username, password, req, next);
+    const loginService = await userService.login(username, password, userIp, userAgent);
     if (!loginService) {
       const error = new Error("Failed to login");
       error.statusCode = 400;
       return next(error);
     }
+    res.cookie("accessToken", loginService.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
     res.cookie("refreshToken", loginService.refreshToken, {
       httpOnly: true,
       secure: true,
@@ -25,7 +32,6 @@ export const login = async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     return res.status(200).json({
-      accessToken: loginService.accessToken,
       username: loginService.userExist.username,
       role: loginService.userExist.role,
       name: loginService.userExist.name,
@@ -70,7 +76,15 @@ export const refresh = async (req, res, next) => {
   try {
     const { userId, refreshToken } = req.user;
 
-    const user = await userRepository.refresh(userId, refreshToken, next);
+    const currentIP = req.ip || req.headers["x-forwarded-for"];
+    const currentUserAgent = req.headers["user-agent"];
+    const user = await userService.refresh(
+      userId,
+      refreshToken,
+      currentIP,
+      currentUserAgent,
+      next,
+    );
 
     res.cookie("refreshToken", user.refreshToken, {
       httpOnly: true,
@@ -78,7 +92,13 @@ export const refresh = async (req, res, next) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    return res.status(200).json({ message: user.accessToken });
+    res.cookie("accessToken", user.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+    return res.status(200).json({ message: "" });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ message: "Internal Server Error" });
