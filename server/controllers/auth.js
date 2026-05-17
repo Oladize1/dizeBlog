@@ -58,8 +58,7 @@ export const register = async (req, res, next) => {
       name,
       username,
       password,
-      role,
-      next,
+      role
     );
     if (!user) {
       const error = new Error("Failed to register");
@@ -83,7 +82,6 @@ export const refresh = async (req, res, next) => {
       refreshToken,
       currentIP,
       currentUserAgent,
-      next,
     );
 
     res.cookie("refreshToken", user.refreshToken, {
@@ -98,9 +96,8 @@ export const refresh = async (req, res, next) => {
       sameSite: "strict",
       maxAge: 15 * 60 * 1000,
     });
-    return res.status(200).json({ message: "" });
+    return res.status(200).json({ message: "Token rotated" });
   } catch (error) {
-    console.log(error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };

@@ -30,18 +30,14 @@ export const postService = {
     await user.save();
     return newPost;
   },
-  getAuthorsPost: async (userId, res) => {
+  getAuthorsPost: async (userId) => {
     const authorPosts = await postRepository.getAuthorPosts(userId);
-    if (authorPosts.length === 0) {
-      return res.status(200).json({ message: "No posts found" });
-    }
+
     return authorPosts;
   },
-  getAllPosts: async (offset, limit, res) => {
+  getAllPosts: async (offset, limit) => {
     const allPosts = await postRepository.posts(offset, limit);
-    if (!allPosts) {
-      return res.status(200).json("No Post at the moment");
-    }
+
     return allPosts;
   },
   getSinglePost: async (id, userId) => {
@@ -113,17 +109,12 @@ export const postService = {
     }
     return newComment;
   },
-  getPostComments: async (id, res) => {
+  getPostComments: async (id) => {
     const post = await postRepository.getSinglePost(id);
     if (!post) {
       const error = new Error("Post Not Found");
       error.statusCode = 404;
       throw error;
-    }
-
-    if (post.comments.length === 0) {
-      res.status(200).json({ message: "No comments at the moment" });
-      return;
     }
     return post.comments;
   },
@@ -152,7 +143,7 @@ export const postService = {
     await user.save();
     return user.bookmarks;
   },
-  getBookmarks: async (userId, res) => {
+  getBookmarks: async (userId) => {
     const user = await userRepository.findUserById(userId);
     if (!user) {
       const error = new Error("UnAuthorized: Please sign in");
@@ -160,10 +151,7 @@ export const postService = {
       throw error;
     }
     const bookmarks = user.bookmarks;
-    if (bookmarks.length === 0) {
-      res.status(200).json({ message: "No bookmark at the moment" });
-      return;
-    }
+
     return bookmarks;
   },
   likePost: async (userId, postId) => {

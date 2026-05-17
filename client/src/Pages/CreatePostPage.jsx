@@ -13,7 +13,7 @@ const CreatePostPage = () => {
   const { createPost, isLoading, error } = usePostStore();
 
   if (isLoading) return <Spinner />;
-  if (error) return toast(error);
+  if (error) return toast.error(error);
 
   useEffect(() => {
     if (error) {

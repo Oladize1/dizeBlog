@@ -28,12 +28,12 @@ export const userService = {
     );
     return { accessToken, refreshToken, userExist };
   },
-  register: async (name, username, password, role = "user", next) => {
+  register: async (name, username, password, role = "user") => {
     const existingUser = await userRepository.findUser(username);
     if (existingUser) {
       const error = new Error("username taken");
       error.statusCode = 400;
-      return next(error);
+      throw error;
     }
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await userRepository.createUser(
@@ -45,24 +45,24 @@ export const userService = {
     if (!user) {
       const error = new Error("Failed to register");
       error.statusCode = 400;
-      return next(error);
+      throw error
     }
     return user;
   },
 
-  refresh: async (userId, token, ip, userAgent, next) => {
+  refresh: async (userId, token, ip, userAgent) => {
     const storedToken = await userRepository.refreshToken(token);
     if (!storedToken) {
       const error = new Error("Token reuse detected");
       error.statusCode = 403;
-      return next(error);
+      throw error
     }
 
     if (storedToken.userAgent !== userAgent) {
       await userRepository.removeAllToken(userId);
       const error = new Error("Security violation: Device mismatch");
       error.statusCode = 403;
-      return next(error);
+      throw error
     }
 
     let newIp;
@@ -73,7 +73,9 @@ export const userService = {
     const user = await userRepository.findUserById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      const error = new Error("User Not Found");
+      error.statusCode = 404
+      throw error
     }
 
     const newRefreshToken = generateRefreshToken(user);

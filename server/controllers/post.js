@@ -11,7 +11,10 @@ export const getPostsSpecificToAuthor = async (req, res, next) => {
     if (userRole !== "author") {
       return res.status(403).json({ message: "User is not an author " });
     }
-    const postsOfAuthor = await postService.getAuthorsPost(userId, res);
+    const postsOfAuthor = await postService.getAuthorsPost(userId);
+    if (postsOfAuthor.length === 0) {
+      return res.status(200).json({ message: "No posts found" });
+    }
 
     return res.status(200).json(postsOfAuthor);
   } catch (error) {
@@ -19,12 +22,15 @@ export const getPostsSpecificToAuthor = async (req, res, next) => {
   }
 };
 
-export const getAllPosts = async (req, res) => {
+export const getAllPosts = async (req, res, next) => {
   try {
     let { offset } = req.query;
     offset = parseInt(offset) || 0;
     const limit = 10;
-    const posts = await postService.getAllPosts(offset, limit, res);
+    const posts = await postService.getAllPosts(offset, limit);
+    if (!posts) {
+      return res.status(200).json("No Post at the moment");
+    }
     return res.status(200).json(posts);
   } catch (error) {
     return next(error);
@@ -121,12 +127,7 @@ export const commentOnPost = async (req, res, next) => {
       return next(error);
     }
 
-    const newComment = await postService.comment(
-      comment,
-      userId,
-      userName,
-      id,
-    );
+    const newComment = await postService.comment(comment, userId, userName, id);
 
     return res.status(201).json(newComment);
   } catch (error) {
@@ -140,6 +141,10 @@ export const getCommentsForPost = async (req, res, next) => {
     const { id } = req.params;
 
     const post = await postService.getPostComments(id, res);
+    if (post.length === 0) {
+      res.status(200).json({ message: "No comments at the moment" });
+      return;
+    }
     return res.status(200).json(post);
   } catch (error) {
     return next(error);
@@ -164,10 +169,7 @@ export const removeBookmark = async (req, res, next) => {
     const { userId } = req.user;
     const { id } = req.params;
 
-    const removedBookmark = await postService.removeBookmarked(
-      userId,
-      id,
-    );
+    const removedBookmark = await postService.removeBookmarked(userId, id);
     return res
       .status(200)
       .json({ message: "Bookmark removed", bookmarks: removedBookmark });
@@ -180,7 +182,11 @@ export const removeBookmark = async (req, res, next) => {
 export const getBookmarks = async (req, res, next) => {
   try {
     const { userId } = req.user;
-    const bookmarks = await postService.getBookmarks(userId, res);
+    const bookmarks = await postService.getBookmarks(userId);
+    if (bookmarks.length === 0) {
+      res.status(200).json({ message: "No bookmark at the moment" });
+      return;
+    }
     return res.status(200).json(bookmarks);
   } catch (error) {
     return next(error);
@@ -191,10 +197,10 @@ export const likePost = async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { id } = req.params;
-    
-    const post = await postService.likePost(userId, id)
+
+    const post = await postService.likePost(userId, id);
     return res.status(200).json(post);
   } catch (error) {
-    return next(error)
+    return next(error);
   }
 };

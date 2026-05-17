@@ -1,7 +1,6 @@
 import { create } from 'zustand'
-import axios from 'axios'
-// const BASE_URL = 'https://dizeblog.onrender.com/api/blog'
-const BASE_URL = 'http://localhost:3000/api/blog'
+import { api } from './app'
+
 export const useAuthStore = create((set) => ({
     user: localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null,
     error:null,
@@ -11,7 +10,7 @@ export const useAuthStore = create((set) => ({
         let payload = {name, username, password, role}
         set({isLoading: true, error: null});
         try {
-            await axios.post(`${BASE_URL}/register`, payload)
+            await api.post("/register", payload)
             set({error: null, isLoading: false })
         } catch (error) {
             set({error: error.response?.data, isLoading: false})
@@ -22,7 +21,7 @@ export const useAuthStore = create((set) => ({
     login: async (username, password) => {
       set({isLoading: true, error: null}) 
       try {
-        const res = await axios.post(`${BASE_URL}/login`, {username, password})
+        const res = await api.post("/login", {username, password})
         localStorage.setItem("userInfo", JSON.stringify(res.data))
         set({user: res.data, error:null, isLoading: false})       
       } catch (error) {
@@ -31,6 +30,7 @@ export const useAuthStore = create((set) => ({
       } 
     },
     logout: async() => {
+        await api.post("/logout")
         localStorage.removeItem('userInfo')
         set({user: null, error: null})
     },
@@ -62,7 +62,7 @@ export const usePostStore = create((set, get) => ({
     getAllPosts: async() => {
         set({isLoading: true, error: null})        
         try {
-            const post = await axios.get(`${BASE_URL}/post`)
+            const post = await api.get("/post")
             set({posts: post.data, error:null, isLoading:false})   
         } catch (error) {
             set({isLoading:false, error: error.response?.data})
@@ -73,11 +73,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token; 
-            const singlePost = await axios.get(`${BASE_URL}/post/${id}`, {
-              headers : {
-                Authorization: `Bearer ${token}`
-              }
-            })
+            const singlePost = await api.get(`/post/${id}`)
             
             set({isLoading: false, error: null, selectedPost:singlePost.data, postToEdit: singlePost.data})
         } catch (error) {
@@ -89,11 +85,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error:null})
         try {
             const token = useAuthStore.getState().user?.token; 
-            const newPost = await axios.post(`${BASE_URL}/post`, {title, description, content}, {
-                headers : {
-                    Authorization: `Bearer ${token}`
-                }
-            })
+            const newPost = await api.post("/post", {title, description, content})
             set((state) => ({
                 posts: [...state.posts, newPost.data],
                 error: null,
@@ -109,11 +101,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token; 
-            await axios.patch(`${BASE_URL}/post/${id}`, {title, description, content} ,{
-              headers : {
-                Authorization: `Bearer ${token}`
-              }
-            })
+            await api.patch(`/post/${id}`, {title, description, content})
             set({isLoading: false, error: null})
         } catch (error) {
             set({isLoading: false, error: error.response?.data})
@@ -124,11 +112,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token
-            const posts = await axios.get(`${BASE_URL}/post/author`, {
-                headers : {
-                    Authorization : `Bearer ${token}`
-                }
-            })
+            const posts = await api.get("/post/author")
             set({isLoading: false, error: null, authorPosts: posts.data})
         } catch (error) {
             if (error.response && error.response.status === 404) {
@@ -144,11 +128,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token; 
-            await axios.delete(`${BASE_URL}/post/${id}`, {
-                headers : {
-                    Authorization: `Bearer ${token}`
-                }
-            })
+            await api.delete(`/post/${id}`)
             
             set(state => ({
                 bookmarks: state.bookmarks.filter(bookmark => bookmark !== id),
@@ -164,11 +144,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token
-            const likedPost = await axios.post(`${BASE_URL}/post/like/${id}`, null ,{
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
+            const likedPost = await api.post(`/post/like/${id}`, {})
             const updatedPost = likedPost.data
              set((state) => ({
                 posts: state.posts.map((post) =>
@@ -204,11 +180,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token;            
-            const bookmark = await axios.post(`${BASE_URL}/post/bookmark/${id}`, null, {
-                headers: {
-                    Authorization : `Bearer ${token}`
-                }
-            })
+            const bookmark = await api.post(`/post/bookmark/${id}`, {})
             
             
              set((state) => ({
@@ -225,11 +197,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token
-            await axios.delete(`${BASE_URL}/post/bookmark/${id}`, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
+            await api.delete(`/post/bookmark/${id}`)
             set(state => ({
                 bookmarks: state.bookmarks.filter(bookmark => bookmark !== id),
                 isLoading: false,
@@ -244,11 +212,7 @@ export const usePostStore = create((set, get) => ({
         set({isLoading: true, error: null})
         try {
             const token = useAuthStore.getState().user?.token
-            const addNewComment = await axios.post(`${BASE_URL}/post/comment/${id}`, {comment}, {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            })
+            const addNewComment = await api.post(`/post/comment/${id}`, {comment})
                set((state) => ({
                 selectedPost: {
                   ...state.selectedPost,
