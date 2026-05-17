@@ -2,17 +2,17 @@ import { postRepository } from "../repositories/post.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
 
 export const postService = {
-  createPost: async (title, description, content, userId, role, next) => {
+  createPost: async (title, description, content, userId, role) => {
     const user = await userRepository.findUserById(userId);
     if (!user) {
       const error = new Error("Un Authorized: please login");
       error.statusCode = 401;
-      return next(error);
+      throw error;
     }
     if (role !== "author") {
       const error = new Error("User is not allowed to create posts");
       error.statusCode = 401;
-      return next(error);
+      throw error;
     }
     const newPost = await postRepository.createPost(
       title,
@@ -23,51 +23,53 @@ export const postService = {
     if (!newPost) {
       const error = new Error("Failed to create Post");
       error.statusCode = 400;
-      return next(error);
+      throw error;
     }
 
     user.posts = user.posts.concat(newPost._id);
     await user.save();
     return newPost;
   },
-  getAuthorsPost: async (userId, res) => {
+  getAuthorsPost: async (userId) => {
     const authorPosts = await postRepository.getAuthorPosts(userId);
-    if (authorPosts.length === 0) {
-      return res.status(200).json({ message: "No posts found" });
-    }
+
     return authorPosts;
   },
-  getAllPosts: async (offset, limit, res) => {
+  getAllPosts: async (offset, limit) => {
     const allPosts = await postRepository.posts(offset, limit);
-    if (!allPosts) {
-      return res.status(200).json("No Post at the moment");
-    }
+
     return allPosts;
   },
-  getSinglePost: async (id, userId, next) => {
+  getSinglePost: async (id, userId, clientIP) => {
     const getPost = await postRepository.getSinglePost(id);
+
     if (!getPost) {
       const error = new Error("Post not Found");
       error.statusCode = 404;
-      return next(error);
+      throw error;
     }
-    if (!getPost.watched.includes(userId)) {
-      getPost.watched.push(userId);
-      await getPost.save();
+    if (userId) {
+      const alreadyWatched = getPost.watched.some(
+        (id) => id.toString() === userId,
+      );
+      if (!alreadyWatched) {
+        getPost.watched.push(userId);
+        await getPost.save();
+      }
     }
     return getPost;
   },
-  updatePost: async (id, userId, title, description, content, next) => {
+  updatePost: async (id, userId, title, description, content) => {
     const post = await postRepository.findPostById(id);
     if (!post) {
       const error = new Error("Post not found");
       error.statusCode = 404;
-      return next(error);
+      throw error;
     }
     if (post.creator.toString() !== userId.toString()) {
       const error = new Error("User is not allowed to update this post");
       error.statusCode = 403;
-      return next(error);
+      throw error;
     }
     const updatedPost = await postRepository.updatePost(
       id,
@@ -78,27 +80,27 @@ export const postService = {
     );
     return updatedPost;
   },
-  deletePost: async (id, userId, next) => {
+  deletePost: async (id, userId) => {
     const post = await postRepository.findPostById(id);
     if (!post) {
       const error = new Error("Post not found");
       error.statusCode = 404;
-      return next(error);
+      throw error;
     }
     if (post.creator.toString() !== userId.toString()) {
-      const error = new Error("User is not allowed to update this post");
+      const error = new Error("User is not allowed to delete this post");
       error.statusCode = 403;
-      return next(error);
+      throw error;
     }
     const deletePost = await postRepository.deletePost(id, userId);
     return deletePost;
   },
-  comment: async (comment, userId, username, postId, next) => {
+  comment: async (comment, userId, username, postId) => {
     const post = await postRepository.findPostById(postId);
     if (!post) {
       const error = new Error("Post not found");
       error.statusCode = 404;
-      return next(error);
+      throw error;
     }
     const newComment = await postRepository.createComment(
       comment,
@@ -109,71 +111,63 @@ export const postService = {
     if (!newComment) {
       const error = new Error("Failed to create comment");
       error.statusCode = 500;
-      return next(error);
+      throw error;
     }
     return newComment;
   },
-  getPostComments: async (id, res, next) => {
+  getPostComments: async (id) => {
     const post = await postRepository.getSinglePost(id);
     if (!post) {
       const error = new Error("Post Not Found");
       error.statusCode = 404;
-      return next(error);
-    }
-
-    if (post.comments.length === 0) {
-      res.status(200).json({ message: "No comments at the moment" });
-      return;
+      throw error;
     }
     return post.comments;
   },
-  bookmark: async (postId, userId, res, next) => {
+  bookmark: async (postId, userId) => {
     const user = await userRepository.findUserById(userId);
     if (!user) {
       const error = new Error("UnAuthorized: please sign in");
       error.statusCode = 401;
-      return next(error);
+      throw error;
     }
     if (user.bookmarks.map(String).includes(postId)) {
-      return res.status(200).json({ message: "Post already bookmarked" });
+      return { alreadyBookmarked: true, bookmarks: user.bookmarks };
     }
     user.bookmarks = user.bookmarks.concat(postId);
     await user.save();
-    return user.bookmarks;
+    return { alreadyBookmarked: false, bookmarks: user.bookmarks };
   },
-  removeBookmarked: async (userId, postId, next) => {
+  removeBookmarked: async (userId, postId) => {
     const user = await userRepository.findUserById(userId);
     if (!user) {
       const error = new Error("UnAuthorized: please sign in");
       error.statusCode = 401;
-      return next(error);
+      throw error;
     }
     user.bookmarks = user.bookmarks.filter((b) => b.toString() !== postId);
     await user.save();
     return user.bookmarks;
   },
-  getBookmarks: async (userId, res, next) => {
+  getBookmarks: async (userId) => {
     const user = await userRepository.findUserById(userId);
     if (!user) {
       const error = new Error("UnAuthorized: Please sign in");
       error.statusCode = 401;
-      return next(error);
+      throw error;
     }
     const bookmarks = user.bookmarks;
-    if (bookmarks.length === 0) {
-      res.status(200).json({ message: "No bookmark at the moment" });
-      return;
-    }
+
     return bookmarks;
   },
-  likePost: async (userId, postId, next) => {
+  likePost: async (userId, postId) => {
     const post = await postRepository.findPostById(postId);
     if (!post) {
       const error = new Error("Post not found");
       error.statusCode = 404;
-      return next(error);
+      throw error;
     }
-    const userIndex = post.likes.indexOf(userId);
+    const userIndex = post.likes.findIndex((id) => id.toString() === userId);
 
     if (userIndex === -1) {
       // User hasn't liked the post yet, so like it

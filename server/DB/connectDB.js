@@ -6,7 +6,6 @@ export const connectDB = async (URI) => {
         console.log(`MongoDB connected: ${conn.connection.host}`);
         
     } catch (error) {
-        console.log(error);
         throw new Error("failed to connect to dataabase");   
     }
 }

@@ -12,8 +12,7 @@ const CreatePostPage = () => {
   const navigate = useNavigate();
   const { createPost, isLoading, error } = usePostStore();
 
-  if (isLoading) return <Spinner />;
-  if (error) return toast(error);
+  
 
   useEffect(() => {
     if (error) {
@@ -27,35 +26,33 @@ const CreatePostPage = () => {
   const handleCreatePost = async (e) => {
     e.preventDefault();
 
-    // For plain text content, just trim the input.
     const plainContent = content.trim();
-
     if (plainContent.length < 50) {
-      toast.error('Content must be at least 50 characters long.');
+      toast.error("Content must be at least 50 characters long.");
       return;
     }
 
     try {
-      // Create the post with the plain text content.
-      await createPost(title, description, plainContent);
-      if (!error) {
+      // 1. Await the response natively
+      const success = await createPost(title, description, plainContent);
+
+      if (success) {
         setTitle("");
         setDescription("");
         setContent("");
         toast.success("Post created successfully");
+  
+        
         navigate("/");
       }
-    } catch (error) {
-      console.log(error);
-      toast.error(error.response?.data);
-      // If token is expired, you might want to logout and navigate to login.
-      // if (error?.message?.name === 'TokenExpiredError') {
-      //   logout();
-      //   navigate('/login');
-      // }
+    } catch (err) {
+      
+      toast.error(
+        err.response?.data?.message ||
+          "An error occurred while creating your post",
+      );
     }
   };
-
   return (
     <div className="container mx-auto px-4 py-6">
       <h2 className="text-center text-4xl mb-6">Create Post</h2>
@@ -90,8 +87,12 @@ const CreatePostPage = () => {
             rows="10"
           />
         </div>
-        <button type="submit" className="btn btn-primary mt-4 w-full" disabled={!canSave}>
-          Create Post
+        <button
+          type="submit"
+          className="btn btn-primary mt-4 w-full"
+          disabled={!canSave || isLoading}
+        >
+          {isLoading ? "Creating Post..." : "Create Post"}
         </button>
       </form>
     </div>

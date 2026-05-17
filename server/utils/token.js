@@ -1,13 +1,16 @@
 import jwt from "jsonwebtoken";
 import { configDotenv } from "dotenv";
 configDotenv();
-export const getTokenFrom = (req) => {
-  const token = req.cookies;
-  console.log("cookie", token);
-  if (token) {
-    return token.refreshToken;
+export const getTokenFromCookies = (req) => {
+  const token = req.cookies?.refreshToken;
+  if (!token) return {message: "No refresh token provided", status: 401}
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.REFRESH_SECRET)
+  } catch (error) {
+    return { message: "Invalid or Expired Token", status: 403 };
   }
-  return null;
+  return {message: "token refreshed", status: 200, decoded, token}
 };
 
 export const generateAccessToken = (user) => {

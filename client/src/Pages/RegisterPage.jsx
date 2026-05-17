@@ -83,7 +83,7 @@ const RegisterPage = () => {
       return;
     }
 
-    const role = author ? "author" : "";
+    const role = author ? "author" : "user";
 
     try {
       await register(name, username, password, role);

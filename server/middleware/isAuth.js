@@ -3,25 +3,25 @@ import { configDotenv } from "dotenv";
 configDotenv();
 export const isAuth = async (req, res, next) => {
   try {
-    const token = req.cookies;
-
+    if (req.method === "OPTIONS") {
+      return next();
+    }
+    const token = req.cookies?.accessToken;
+    
     if (!token) {
       const error = new Error("No token Provided");
       error.statusCode = 401;
       return next(error);
     }
-    const cookie = token.refreshToken;
-    const verify = await jwt.verify(cookie, process.env.REFRESH_SECRET);
-
-    if (!verify) {
-      const error = new Error("UnAutorized User");
-      error.statusCode = 403;
-      return next(error);
-    }
+  
+    const verify = await jwt.verify(token, process.env.ACCESS_SECRET);
 
     req.user = verify;
     next();
   } catch (error) {
-    return next(error);
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "token Expired" });
+    }
+    return res.status(403).json({ message: "Invalid token" });
   }
 };

@@ -12,7 +12,10 @@ import mongoose from "mongoose";
 const app = express();
 dotenv.config();
 
-app.use(cors());
+app.use(cors({
+  origin: `${process.env.CLIENT_URL}`,
+  credentials: true
+}));
 app.use(cookieParser());
 app.use(morgan("dev"));
 app.use(express.json());
