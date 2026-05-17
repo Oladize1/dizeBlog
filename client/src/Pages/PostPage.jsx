@@ -91,7 +91,7 @@ const PostPage = () => {
       setCommentInput("");
       toast.success("comment created successfully");
     } catch (error) {
-      toast.error(error?.response?.data);
+      toast.error(error?.response?.data?.message || "Failed to add comment");
     }
     // Create a new comment object (here we simply use Date.now() as a temporary ID)
     // const newComment = {

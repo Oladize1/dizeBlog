@@ -104,14 +104,14 @@ export const refresh = async (req, res, next) => {
       currentUserAgent,
     );
 
-    res.cookie("accessToken", loginService.accessToken, {
+    res.cookie("accessToken", user.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", 
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 15 * 60 * 1000,
     });
 
-    res.cookie("refreshToken", loginService.refreshToken, {
+    res.cookie("refreshToken", user.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",

@@ -80,7 +80,7 @@ export const userService = {
 
     const newRefreshToken = generateRefreshToken(user);
 
-    const refreshToken = userRepository.createRefreshToken(
+    const refreshToken = await userRepository.createRefreshToken(
       newRefreshToken,
       userId,
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),

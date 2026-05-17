@@ -167,7 +167,7 @@ export const addBookmark = async (req, res, next) => {
       return res
         .status(200)
         .json({
-          mesage: "Post already bookmarked",
+          message: "Post already bookmarked",
           bookmarks: bookmark.bookmarks,
         });
     }

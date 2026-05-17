@@ -25,8 +25,10 @@ const EditPostPage = () => {
 
   if (isLoading) return <Spinner />;
   if (error) {
-    toast(error);
-    return <div>Error loading post...</div>;
+    toast.error(error?.message || error);
+    return (
+      <div className="text-center text-red-500 p-6">Error loading post.</div>
+    );
   }
 
   const handleEditPost = async (e) => {

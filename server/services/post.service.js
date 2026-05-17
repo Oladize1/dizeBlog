@@ -43,18 +43,20 @@ export const postService = {
   getSinglePost: async (id, userId, clientIP) => {
     const getPost = await postRepository.getSinglePost(id);
 
-    
     if (!getPost) {
       const error = new Error("Post not Found");
       error.statusCode = 404;
       throw error;
     }
     if (userId) {
-      if (!getPost.watched.includes(userId)) {
+      const alreadyWatched = getPost.watched.some(
+        (id) => id.toString() === userId,
+      );
+      if (!alreadyWatched) {
         getPost.watched.push(userId);
         await getPost.save();
       }
-    } 
+    }
     return getPost;
   },
   updatePost: async (id, userId, title, description, content) => {
@@ -86,7 +88,7 @@ export const postService = {
       throw error;
     }
     if (post.creator.toString() !== userId.toString()) {
-      const error = new Error("User is not allowed to update this post");
+      const error = new Error("User is not allowed to delete this post");
       error.statusCode = 403;
       throw error;
     }
@@ -130,7 +132,7 @@ export const postService = {
       throw error;
     }
     if (user.bookmarks.map(String).includes(postId)) {
-      return {alreadyBookmarked: true, bookmarks: user.bookmarks}
+      return { alreadyBookmarked: true, bookmarks: user.bookmarks };
     }
     user.bookmarks = user.bookmarks.concat(postId);
     await user.save();
@@ -165,7 +167,7 @@ export const postService = {
       error.statusCode = 404;
       throw error;
     }
-    const userIndex = post.likes.indexOf(userId);
+    const userIndex = post.likes.findIndex((id) => id.toString() === userId);
 
     if (userIndex === -1) {
       // User hasn't liked the post yet, so like it

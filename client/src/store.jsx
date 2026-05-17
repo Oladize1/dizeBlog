@@ -35,9 +35,14 @@ export const useAuthStore = create((set) => ({
     }
   },
   logout: async () => {
-    await api.post("/logout");
-    localStorage.removeItem("userInfo");
-    set({ user: null, error: null });
+    try {
+      await api.post("/logout");
+    } catch (error) {
+      console.error("Logout API failed:", error);
+    } finally {
+      localStorage.removeItem("userInfo");
+      set({ user: null, error: null });
+    }
   },
   // getUser: async(id) =>  {
   //     set({isLoading: true, error: null})
@@ -95,13 +100,12 @@ export const usePostStore = create((set, get) => ({
     try {
       const newPost = await api.post("/post", { title, description, content });
 
-      
       set((state) => ({
         posts: [...state.posts, newPost.data],
         error: null,
         isLoading: false,
       }));
-      return true
+      return true;
     } catch (error) {
       set({ isLoading: false, error: error.response?.data });
       throw error;
@@ -189,7 +193,11 @@ export const usePostStore = create((set, get) => ({
   addBookmark: async (id) => {
     set({ isLoading: true, error: null });
     try {
-      const bookmark = await api.post(`/post/bookmark/${id}`, {}, {withCredentials: true});
+      const bookmark = await api.post(
+        `/post/bookmark/${id}`,
+        {},
+        { withCredentials: true },
+      );
 
       set((state) => ({
         bookmarks: bookmark.data.bookmarks,
