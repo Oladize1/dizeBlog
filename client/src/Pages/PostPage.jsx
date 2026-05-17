@@ -1,33 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import InfiniteScroll from 'react-infinite-scroll-component'
-import DOMPurify from 'dompurify';
-import { useParams, useNavigate } from 'react-router-dom';
-import { usePostStore } from '../store';
-import { format } from 'timeago.js';
-import Spinner from '../Component/Spinner';
-import { toast } from 'react-toastify';
+import React, { useEffect, useState } from "react";
+import InfiniteScroll from "react-infinite-scroll-component";
+import DOMPurify from "dompurify";
+import { useParams, useNavigate } from "react-router-dom";
+import { usePostStore } from "../store";
+import { format } from "timeago.js";
+import Spinner from "../Component/Spinner";
+import { toast } from "react-toastify";
 
-const COMMENTS_PER_PAGE = 10
+const COMMENTS_PER_PAGE = 10;
 
 const PostPage = () => {
-  const { isLoading, selectedPost, error, getSinglePost, addComment } = usePostStore();
-  
+  const { isLoading, selectedPost, error, getSinglePost, addComment } =
+    usePostStore();
+
   const { id } = useParams();
   const [commentInput, setCommentInput] = useState("");
   // const [commentss, setComments] = useState([]);
 
-const navigate = useNavigate()
+  const navigate = useNavigate();
 
-   // State for pagination/infinite scroll
+  // State for pagination/infinite scroll
   const [displayedComments, setDisplayedComments] = useState([]);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
 
-  
   // Fetch the post details
   useEffect(() => {
     getSinglePost(id);
-  }, [id, getSinglePost]);
+  }, [id]);
 
   // Once the post is fetched, set the initial comments (if any)
   // useEffect(() => {
@@ -35,7 +35,6 @@ const navigate = useNavigate()
   //     setComments(selectedPost.comments);
   //   }
   // }, [selectedPost]);
-
 
   // When the post is loaded (or when its comments change), set up the initial comments.
   useEffect(() => {
@@ -50,26 +49,35 @@ const navigate = useNavigate()
 
   if (isLoading) return <Spinner />;
   if (error) return toast(error);
-  
 
-  const { title, creator, likes, watched, createdAt, updatedAt, content, comments } = selectedPost;
+  const {
+    title,
+    creator,
+    likes,
+    watched,
+    guestWatched,
+    createdAt,
+    updatedAt,
+    content,
+    comments,
+  } = selectedPost;
   const safeContent = DOMPurify.sanitize(content);
 
- 
- 
+  const totalViews = watched?.length || 0;
+
   // Function to load more comments
   const fetchMoreComments = () => {
     if (comments) {
       const nextOffset = currentOffset + COMMENTS_PER_PAGE;
       const nextComments = comments.slice(currentOffset, nextOffset);
-      setDisplayedComments(prev => [...prev, ...nextComments]);
+      setDisplayedComments((prev) => [...prev, ...nextComments]);
       setCurrentOffset(nextOffset);
       if (nextOffset >= comments.length) {
         setHasMore(false);
       }
     }
   };
-  
+
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!commentInput.trim()) {
@@ -78,12 +86,12 @@ const navigate = useNavigate()
     }
 
     try {
-      await addComment(id, commentInput)
-      setDisplayedComments(prev => [...prev]);
+      await addComment(id, commentInput);
+      setDisplayedComments((prev) => [...prev]);
       setCommentInput("");
-      toast.success('comment created successfully')
+      toast.success("comment created successfully");
     } catch (error) {
-      toast.error(error?.response?.data)
+      toast.error(error?.response?.data);
     }
     // Create a new comment object (here we simply use Date.now() as a temporary ID)
     // const newComment = {
@@ -103,8 +111,8 @@ const navigate = useNavigate()
 
       {/* Post Metadata */}
       <div className="text-sm text-gray-600 mb-6">
-        <span>Created by: {creator}</span> •{' '}
-        <span>Created at: {format(createdAt)}</span> •{' '}
+        <span>Created by: {creator}</span> •{" "}
+        <span>Created at: {format(createdAt)}</span> •{" "}
         <span>Last updated: {format(updatedAt)}</span>
       </div>
 
@@ -119,7 +127,7 @@ const navigate = useNavigate()
           <span className="font-semibold">{likes?.length}</span> Likes
         </div>
         <div>
-          <span className="font-semibold">{watched?.length}</span> Watched
+          <span className="font-semibold">{totalViews}</span> Watched
         </div>
       </div>
 
@@ -145,7 +153,7 @@ const navigate = useNavigate()
             dataLength={displayedComments.length}
             next={fetchMoreComments}
             hasMore={hasMore}
-            loader={<Spinner/>}
+            loader={<Spinner />}
             endMessage={
               <p className="text-center">
                 <b>No more comments</b>
@@ -154,10 +162,17 @@ const navigate = useNavigate()
           >
             <ul className="space-y-4">
               {displayedComments.map((comment) => (
-                <li key={comment._id} className="p-4 bg-white rounded-lg shadow">
+                <li
+                  key={comment._id}
+                  className="p-4 bg-white rounded-lg shadow"
+                >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="font-semibold">{comment.username || 'Anonymous'}</span>
-                    <span className="text-xs text-gray-500">{format(comment.createdAt)}</span>
+                    <span className="font-semibold">
+                      {comment.username || "Anonymous"}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {format(comment.createdAt)}
+                    </span>
                   </div>
                   <p className="text-gray-700">{comment.comment}</p>
                 </li>

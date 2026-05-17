@@ -40,17 +40,21 @@ export const postService = {
 
     return allPosts;
   },
-  getSinglePost: async (id, userId) => {
+  getSinglePost: async (id, userId, clientIP) => {
     const getPost = await postRepository.getSinglePost(id);
+
+    
     if (!getPost) {
       const error = new Error("Post not Found");
       error.statusCode = 404;
       throw error;
     }
-    if (!getPost.watched.includes(userId)) {
-      getPost.watched.push(userId);
-      await getPost.save();
-    }
+    if (userId) {
+      if (!getPost.watched.includes(userId)) {
+        getPost.watched.push(userId);
+        await getPost.save();
+      }
+    } 
     return getPost;
   },
   updatePost: async (id, userId, title, description, content) => {
@@ -118,7 +122,7 @@ export const postService = {
     }
     return post.comments;
   },
-  bookmark: async (postId, userId, res) => {
+  bookmark: async (postId, userId) => {
     const user = await userRepository.findUserById(userId);
     if (!user) {
       const error = new Error("UnAuthorized: please sign in");
@@ -126,11 +130,11 @@ export const postService = {
       throw error;
     }
     if (user.bookmarks.map(String).includes(postId)) {
-      return res.status(200).json({ message: "Post already bookmarked" });
+      return {alreadyBookmarked: true, bookmarks: user.bookmarks}
     }
     user.bookmarks = user.bookmarks.concat(postId);
     await user.save();
-    return user.bookmarks;
+    return { alreadyBookmarked: false, bookmarks: user.bookmarks };
   },
   removeBookmarked: async (userId, postId) => {
     const user = await userRepository.findUserById(userId);

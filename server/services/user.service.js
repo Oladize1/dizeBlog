@@ -89,6 +89,7 @@ export const userService = {
       userAgent,
     );
     const accessToken = generateAccessToken(user);
+    
     return { accessToken, refreshToken };
   },
 };

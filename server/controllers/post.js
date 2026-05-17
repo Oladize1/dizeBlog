@@ -1,6 +1,5 @@
 import { Post, Comment } from "../model/Post.js";
 import { User } from "../model/User.js";
-import { getTokenFrom } from "../utils/token.js";
 import { postService } from "../services/post.service.js";
 
 import jwt from "jsonwebtoken";
@@ -41,6 +40,8 @@ export const getSinglePost = async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { id } = req.params;
+
+    
     const post = await postService.getSinglePost(id, userId);
     return res.status(200).json(post);
   } catch (error) {
@@ -57,6 +58,10 @@ export const createPost = async (req, res, next) => {
       return res
         .status(400)
         .json({ message: "Title, description and content are required" });
+    }
+
+    if (body.title.length < 5) {
+      return res.status(400).json({message: "Title length must be greater than or equal to 5"})
     }
 
     const post = await postService.createPost(
@@ -131,8 +136,8 @@ export const commentOnPost = async (req, res, next) => {
 
     return res.status(201).json(newComment);
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Server Error" });
+    
+    return next(error)
   }
 };
 
@@ -140,7 +145,7 @@ export const getCommentsForPost = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const post = await postService.getPostComments(id, res);
+    const post = await postService.getPostComments(id);
     if (post.length === 0) {
       res.status(200).json({ message: "No comments at the moment" });
       return;
@@ -156,9 +161,21 @@ export const addBookmark = async (req, res, next) => {
     const { userId } = req.user;
     const { id } = req.params;
 
-    const bookmark = await postService.bookmark(id, userId, res);
+    const bookmark = await postService.bookmark(id, userId);
 
-    return res.status(200).json(bookmark);
+    if (bookmark.alreadyBookmarked) {
+      return res
+        .status(200)
+        .json({
+          mesage: "Post already bookmarked",
+          bookmarks: bookmark.bookmarks,
+        });
+    }
+
+    return res.status(200).json({
+      message: "Bookmark added successfully",
+      bookmarks: bookmark.bookmarks,
+    });
   } catch (error) {
     return next(error);
   }
@@ -174,8 +191,7 @@ export const removeBookmark = async (req, res, next) => {
       .status(200)
       .json({ message: "Bookmark removed", bookmarks: removedBookmark });
   } catch (error) {
-    console.log(error);
-    return res.status(500).json({ message: "Server Error" });
+    return next(error)
   }
 };
 

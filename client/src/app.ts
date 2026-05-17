@@ -2,7 +2,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 
 // const BASE_URL = 'https://dizeblog.onrender.com/api/blog'
-const BASE_URL = 'http://localhost:3000/api/blog'
+const BASE_URL = "http://localhost:3000/api/blog";
 
 export const api = axios.create({
   baseURL: `${BASE_URL}`,
@@ -18,14 +18,11 @@ api.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const status = error.response?.status;
+    if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
-        await axios.post(
-          `${BASE_URL}/refresh`,
-          {},
-          { withCredentials: true },
-        );
+        await axios.post(`${BASE_URL}/refresh`, {}, { withCredentials: true });
         return api(originalRequest);
       } catch (refreshError) {
         toast.error("Session expired, Logging out...");
@@ -33,6 +30,10 @@ api.interceptors.response.use(
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }
+    }
+    if (status === 401 || status === 403) {
+      localStorage.removeItem("userInfo");
+      window.location.href = "/login";
     }
     return Promise.reject(error);
   },
